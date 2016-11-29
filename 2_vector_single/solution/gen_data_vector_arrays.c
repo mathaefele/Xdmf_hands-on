@@ -1,0 +1,142 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+ 
+#include <hdf5.h>
+ 
+// The number of cells in the X, Y dimensions
+#define NX 30
+#define NY 20
+#define NT 20
+#define M_PI 3.1415926535897932
+void
+write_hdf5_data()
+{
+    hid_t     file_id;
+    file_id = H5Fcreate("xdmfvector.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    float valx, valy;
+    int t=0;
+    //Number of rounds
+    int nrounds = 4;
+    float dalpha = ((float) nrounds) / ((float) NT) * 2.0*M_PI;
+ 
+    // Create the coordinate data.
+    float *x = (float *) malloc(NX * sizeof(float));
+    float *y = (float *) malloc(NY * sizeof(float));
+    float dx = 2.0 / NX;
+    float dy = 1.0 / NY;
+    for (int i = 0; i < NX; i++)
+      x[i] = -1. + i*dx;
+    for (int i = 0; i < NY; i++)
+      y[i] = i*dy;
+ 
+    // Create the vector data.
+    float *vectorx = (float *) malloc(NX * NY * sizeof(float));
+    float *vectory = (float *) malloc(NX * NY * sizeof(float));
+ 
+    valx = cos(t*dalpha);
+    valy = sin(t*dalpha);
+    for (int j = 0; j < NY; j++)
+    {
+        for (int i = 0; i < NX; i++)
+        {
+          vectorx[i+NX*j] = i*valx;
+          vectory[i+NX*j] = valy;
+        }
+    }
+ 
+ 
+    // Write the data file.
+    hid_t     dataset_id, dataspace_id;
+    hsize_t   dims2d[2], dims1d[1];
+    herr_t    status;
+    const char *coordNames[] = {"/X", "/Y"};
+ 
+    /* Write separate coordinate arrays for the x and y coordinates. */
+    for(int did = 0; did < 2; ++did)
+    {
+        dims1d[0] = did == 0 ? NX : NY;
+        dataspace_id = H5Screate_simple(1, dims1d, NULL);
+ 
+        dataset_id = H5Dcreate(file_id, coordNames[did], H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                          H5P_DEFAULT, did == 0 ? x : y);
+ 
+        status = H5Dclose(dataset_id);
+ 
+        status = H5Sclose(dataspace_id);
+    }
+ 
+    // Write the vector data.
+    dims2d[0] = NY;
+    dims2d[1] = NX;
+    dataspace_id = H5Screate_simple(2, dims2d, NULL);
+ 
+    dataset_id = H5Dcreate(file_id, "/vectorx", H5T_NATIVE_FLOAT,dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, vectorx);
+    status = H5Dclose(dataset_id);
+ 
+    dataset_id = H5Dcreate(file_id, "/vectory", H5T_NATIVE_FLOAT,dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, vectory);
+    status = H5Dclose(dataset_id);
+    status = H5Sclose(dataspace_id);
+ 
+ 
+    // Free the data.
+    free(x);
+    free(y);
+    free(vectorx);
+    free(vectory);
+ 
+    status = H5Fclose(file_id);
+}
+ 
+void
+write_xdmf_xml()
+{
+    FILE *xmf = 0;
+ 
+    /*
+     * Open the file and write the XML description of the mesh..
+     */
+    xmf = fopen("xdmfvector.xmf", "w");
+    fprintf(xmf, "<?xml version=\"1.0\" ?>\n");
+    fprintf(xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
+    fprintf(xmf, "<Xdmf Version=\"2.0\">\n");
+    fprintf(xmf, " <Domain>\n");
+    fprintf(xmf, "   <Grid Name=\"mesh1\" GridType=\"Uniform\">\n");
+    fprintf(xmf, "     <Topology TopologyType=\"2DRectMesh\" NumberOfElements=\"%d %d\"/>\n", NY, NX);
+    fprintf(xmf, "     <Geometry GeometryType=\"VXVY\">\n");
+    fprintf(xmf, "       <DataItem Dimensions=\"%d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", NX);
+    fprintf(xmf, "        xdmfvector.h5:/X\n");
+    fprintf(xmf, "       </DataItem>\n");
+    fprintf(xmf, "       <DataItem Dimensions=\"%d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", NY);
+    fprintf(xmf, "        xdmfvector.h5:/Y\n");
+    fprintf(xmf, "       </DataItem>\n");
+    fprintf(xmf, "     </Geometry>\n");
+    fprintf(xmf, "     <Attribute Name=\"Intensity\" AttributeType=\"Vector\" Center=\"Node\">\n");
+    fprintf(xmf, "       <DataItem ItemType="Function" Function="join($0, $1)" Dimensions="%d %d 2">", NY, NX);
+    fprintf(xmf, "         <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", NY, NX);
+    fprintf(xmf, "          xdmfvector.h5:/vectorx\n");
+    fprintf(xmf, "         </DataItem>\n");
+    fprintf(xmf, "         <DataItem Dimensions=\"%d %d\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", NY, NX);
+    fprintf(xmf, "          xdmfvector.h5:/vectory\n");
+    fprintf(xmf, "         </DataItem>\n");
+    fprintf(xmf, "       </DataItem>\n");
+    fprintf(xmf, "     </Attribute>\n");
+    fprintf(xmf, "   </Grid>\n");
+    fprintf(xmf, " </Domain>\n");
+    fprintf(xmf, "</Xdmf>\n");
+    fclose(xmf);
+}
+ 
+int
+main(int argc, char *argv[])
+{
+    write_hdf5_data();
+    write_xdmf_xml();
+ 
+    return 0;
+}
+

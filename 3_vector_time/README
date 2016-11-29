@@ -1,0 +1,23 @@
+Xdmf Tutorial
+=============
+
+Look at the code in gen_data_vector.c 
+It still builds an hdf5 file but containing several 2D vector data defined on a 2D structured rectilinear grid.
+
+Compile it:
+source compile.sh
+
+Execute it:
+./gen_data_vector
+
+Have a look at the content of the HDF5 files with h5ls and h5dump
+
+The x axis is contained in /X dataset
+The y axis is contained in /Y dataset
+The x and y components of the vector data are interleaved in each /vector-XX dataset
+
+Build the write_xdmf_xml() routine that produces the set of xmf files that will enable to visualise the data serie with VisIt.
+A rather small modification of your vector_single routine will make the trick.
+The idea is to generate a serie of xmf files, one per time step with the following naming convention:
+xdmfvector-XX.xmf where XX is the time step number 
+

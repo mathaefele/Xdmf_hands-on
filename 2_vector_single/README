@@ -1,0 +1,23 @@
+Xdmf Tutorial
+=============
+
+Look at the code in gen_data_vector.c 
+It builds an hdf5 file containing a 2D vector data defined on a 2D structured rectilinear grid.
+
+Compile it:
+source compile.sh
+
+Execute it:
+./gen_data_vector
+
+Have a look at the content of the HDF5 files with h5ls and h5dump
+
+The x axis is contained in /X dataset
+The y axis is contained in /Y dataset
+The x and y components of the vector data are interleaved in the /vector dataset
+
+Build the write_xdmf_xml() routine that produces an xmf file readable by VisIt.
+Start by building the grid and visualize the grid in VisIt. Once ok, implement the vector data defined on this grid.
+Hints: Build the xmf file by hand at the beginning
+
+In the solution directory you can also see how to handle vector data that are not interleaved in the file gen_data_vector_array.c 

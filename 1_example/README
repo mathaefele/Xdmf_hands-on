@@ -1,0 +1,18 @@
+Xdmf Tutorial
+=============
+
+Look at the code in gen_data_grid.c and  gen_data_unstructured.c and try to understand what it does.
+
+Compile it:
+source compile.sh
+
+Execute it:
+./gen_data_grid
+./gen_data_unstructured
+
+It generates .xmf files and .h5 files
+Open the xmf files in VisIt and visualize the quantities Pressure, VelocityX and scalar with a pseudocolor plot
+
+You understand everything, now it is your turn ;)
+Please look at the README in vector_single directory
+
